@@ -16,6 +16,8 @@ rootProject.allprojects {
     repositories {
         google()
         jcenter()
+
+        maven { url 'https://jitpack.io' }
     }
 }
 
@@ -30,4 +32,11 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+}
+
+dependencies {
+    compileOnly 'androidx.annotation:annotation:1.1.0'
+    implementation 'com.github.jehy:Tor-Onion-Proxy-Library:0.0.7'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'org.slf4j:slf4j-android:1.7.30'
 }
