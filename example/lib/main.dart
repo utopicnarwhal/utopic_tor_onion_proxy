@@ -1,12 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:http_client/curl.dart';
 import 'package:utopic_tor_onion_proxy/utopic_tor_onion_proxy.dart';
 
 void main() {
@@ -63,34 +62,58 @@ class _MyAppState extends State<MyApp> {
               OutlineButton(
                 child: Text('Запрос'),
                 onPressed: () async {
-                  Socket sock;
+                  Socket socket;
                   try {
-                    sock = await Socket.connect(
+                    socket = await Socket.connect(
                       InternetAddress.loopbackIPv4,
                       int.parse(_port),
                       timeout: Duration(seconds: 6),
                     );
 
-                    List<int> ipAddressBytes = 'check.torproject.org'.runes.toList();
+                    List<int> ipAddressBytes =
+                        ascii.encode('check.torproject.org');
 
-                    sock.add([0x04, 0x01, 0x00, 0x50, 0x00, 0x00, 0x00, 0x01, 0x00, ...ipAddressBytes, 0x00]);
+                    socket.add([
+                      0x04,
+                      0x01,
+                      0x00,
+                      0x50,
+                      0x00,
+                      0x00,
+                      0x00,
+                      0x01,
+                      0x00,
+                      ...ipAddressBytes,
+                      0x00
+                    ]);
 
-                    sock.listen((torSocketResponse) {
-                      print(torSocketResponse.toList());
+                    socket.listen((torSocketResponse) {
+                      print(new String.fromCharCodes(torSocketResponse).trim());
                     });
+
+                    String myRequest = 'GET / HTTP/1.1\r\n'
+                        'Accept: text/html\r\n'
+                        'Host: check.torproject.org\r\n\r\n';
+
+                    print(myRequest);
+
+                    socket.write(myRequest);
+
+                    await Future.delayed(Duration(seconds: 6));
+                    socket?.destroy();
                   } catch (e) {
-                    sock?.destroy();
+                    socket?.destroy();
                     print(false);
                   }
 
-                  var dio = new Dio();
-                  (dio.httpClientAdapter as DefaultHttpClientAdapter)
-                      .onHttpClientCreate = (HttpClient client) {
-                    return client;
-                  };
-                  var response = await dio.get('${InternetAddress.loopbackIPv4.host}:$_port');
-                  print(response.data);
-                  dio.close();
+                  // var dio = new Dio();
+                  // // dio.httpClientAdapter = ;
+                  // HttpClient(context: SecurityContext());
+
+                  // var response = await dio
+                  //     .get('${InternetAddress.loopbackIPv4.host}:$_port');
+                  // print(response.data);
+                  // dio.close();
 
                   // var client = CurlClient(
                   //   socksHostPort: '127.0.0.1:$_port',
