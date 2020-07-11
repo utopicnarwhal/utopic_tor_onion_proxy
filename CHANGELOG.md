@@ -1,3 +1,3 @@
-## 0.0.1
+## 0.1.0
 
-* TODO: Describe initial release.
+* Basic functional of Tor Onion Proxy.

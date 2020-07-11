@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import com.msopentech.thali.android.toronionproxy.AndroidOnionProxyManager;
 import com.msopentech.thali.toronionproxy.OnionProxyManager;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -84,6 +85,8 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
         if (call.method.equals("startTor")) {
             startTor(result);
+        } else if (call.method.equals("stopTor")) {
+            stopTor(result);
         } else {
             result.notImplemented();
         }
@@ -97,6 +100,20 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
         new TorStarter(this.tor, result).execute();
     }
 
+    private void stopTor(final Result result) {
+        if (tor == null) {
+            result.success(true);
+            return;
+        }
+
+        try {
+            tor.stop();
+            result.success(true);
+        } catch (IOException e) {
+            result.error("0", e.toString(), e.getStackTrace());
+        }
+    }
+
     private static class TorStarter extends AsyncTask<Void, Void, Void> {
         private OnionProxyManager tor;
         private Result result;
@@ -108,22 +125,26 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
         @Override
         protected Void doInBackground(Void... params) {
-            int totalSecondsPerTorStartup = (int) TimeUnit.MINUTES.toSeconds(3);
-            // количество попыток запуска
+            int totalSecondsPerTorStartup = (int) TimeUnit.MINUTES.toSeconds(1);
             int totalTriesPerTorStartup = 1;
             try {
                 boolean ok = tor.startWithRepeat(totalSecondsPerTorStartup, totalTriesPerTorStartup);
                 if (!ok) {
-                    result.error("", "error message", "no details");
+                    result.error("1", "Can't start Tor onion proxy", "");
                     return null;
+                }
+                int awaitCounter = 0;
+                while (!tor.isRunning() || awaitCounter != 30) {
+                    Thread.sleep(100);
+                    awaitCounter++;
                 }
                 if (tor.isRunning()) {
                     result.success(String.valueOf(tor.getIPv4LocalHostSocksPort()));
                     return null;
                 }
-                result.error("", "error message", "no details");
+                result.error("2", "Tor is not running after start", "");
             } catch (Exception e) {
-                result.error("0", e.toString(), "tuk");
+                result.error("0", e.toString(), e.getStackTrace());
             }
             return null;
         }

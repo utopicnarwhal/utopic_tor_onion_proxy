@@ -10,4 +10,8 @@ class UtopicTorOnionProxy {
     final String port = await _channel.invokeMethod('startTor');
     return port;
   }
+
+  static Future<bool> stopTor() async {
+    return _channel.invokeMethod<bool>('stopTor');
+  }
 }

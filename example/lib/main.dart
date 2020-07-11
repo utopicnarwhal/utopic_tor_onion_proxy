@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'dart:async';
+
+import 'package:flutter/material.dart';
 
 import 'package:flutter/services.dart';
 import 'package:utopic_tor_onion_proxy/utopic_tor_onion_proxy.dart';
@@ -18,29 +16,19 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _port = 'Unknown';
+  String _port;
+  String _responseString;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> startTor() async {
     String port;
-    // Platform messages may fail, so we use a try/catch PlatformException.
     try {
       port = await UtopicTorOnionProxy.startTor();
     } on PlatformException catch (e) {
       print(e.message ?? '');
-      port = 'Failed to get port.';
+      port = 'Failed to get port';
     }
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
     if (!mounted) return;
-
     setState(() {
       _port = port;
     });
@@ -51,92 +39,84 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Tor Onion Proxy example'),
         ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text('Running on: $_port\n'),
-              SizedBox(height: 20),
-              OutlineButton(
-                child: Text('Запрос'),
-                onPressed: () async {
-                  Socket socket;
-                  try {
-                    socket = await Socket.connect(
-                      InternetAddress.loopbackIPv4,
-                      int.parse(_port),
-                      timeout: Duration(seconds: 6),
-                    );
+        body: LayoutBuilder(builder: (context, constrains) {
+          return Scrollbar(
+            child: SingleChildScrollView(
+              child: Container(
+                constraints: BoxConstraints(minHeight: constrains.maxHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    SizedBox(height: 20),
+                    Text('Tor running on: ${_port ?? 'Unknown'} port'),
+                    SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Wrap(
+                        runSpacing: 20,
+                        spacing: 20,
+                        children: <Widget>[
+                          OutlineButton(
+                            child: Text('Start Tor Onion Proxy'),
+                            onPressed: startTor,
+                          ),
+                          OutlineButton(
+                            child: Text('Send request to check.torproject.org'),
+                            onPressed: _port != null
+                                ? () async {
+                                    final args = <String>[];
+                                    args.add('-L');
 
-                    List<int> ipAddressBytes =
-                        ascii.encode('check.torproject.org');
+                                    args.add('--max-redirs');
+                                    args.add('3');
 
-                    socket.add([
-                      0x04,
-                      0x01,
-                      0x00,
-                      0x50,
-                      0x00,
-                      0x00,
-                      0x00,
-                      0x01,
-                      0x00,
-                      ...ipAddressBytes,
-                      0x00
-                    ]);
+                                    args.addAll([
+                                      '--socks4a',
+                                      '${InternetAddress.loopbackIPv4.host}:$_port',
+                                    ]);
 
-                    socket.listen((torSocketResponse) {
-                      print(new String.fromCharCodes(torSocketResponse).trim());
-                    });
+                                    final method = 'GET';
+                                    args.addAll(['-X', method.toUpperCase()]);
 
-                    String myRequest = 'GET / HTTP/1.1\r\n'
-                        'Accept: text/html\r\n'
-                        'Host: check.torproject.org\r\n\r\n';
+                                    args.add(Uri(
+                                      scheme: 'HTTPS',
+                                      host: 'check.torproject.org',
+                                      path: '/',
+                                    ).toString());
 
-                    print(myRequest);
+                                    var prf = Process.run('curl', args,
+                                        stdoutEncoding: null);
 
-                    socket.write(myRequest);
+                                    prf = prf.timeout(Duration(seconds: 6));
 
-                    await Future.delayed(Duration(seconds: 6));
-                    socket?.destroy();
-                  } catch (e) {
-                    socket?.destroy();
-                    print(false);
-                  }
+                                    final pr = await prf;
+                                    final list =
+                                        (pr.stdout as List).cast<int>();
 
-                  // var dio = new Dio();
-                  // // dio.httpClientAdapter = ;
-                  // HttpClient(context: SecurityContext());
-
-                  // var response = await dio
-                  //     .get('${InternetAddress.loopbackIPv4.host}:$_port');
-                  // print(response.data);
-                  // dio.close();
-
-                  // var client = CurlClient(
-                  //   socksHostPort: '127.0.0.1:$_port',
-                  // );
-                  // var response = await client.send(Request(
-                  //   'GET',
-                  //   'http://flibustahezeous3.onion',
-                  //   timeout: Duration(seconds: 6),
-                  // ));
-                  // final textContent = await response.readAsString();
-                  // print(textContent);
-                  // await client.close();
-                },
+                                    if (!mounted) return;
+                                    setState(() {
+                                      _responseString =
+                                          String.fromCharCodes(list).trim();
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_responseString != null)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text('Response: \n\n$_responseString'),
+                      ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-        floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.local_activity),
-          onPressed: () {
-            startTor();
-          },
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
