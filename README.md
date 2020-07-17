@@ -19,7 +19,7 @@ This is built using
 ### 1. add dependencies into you project pubspec.yaml file
 ``` dart
 dependencies:
-    utopic_tor_onion_proxy: ^0.1.0
+    utopic_tor_onion_proxy: ^0.1.1
 ```
 
 ### 2. import lib
@@ -36,7 +36,16 @@ try {
 }
 ```
 
-### 4. stop Tor Onion Proxy when done
+### 4. check is Tor OP running
+``` dart
+try {
+    await UtopicTorOnionProxy.isTorRunning();
+} on PlatformException catch (e) {
+    print('Failed to get is tor running. Message: ${e.message}');
+}
+```
+
+### 5. stop Tor Onion Proxy when done
 ``` dart
 try {
     await UtopicTorOnionProxy.stopTor();

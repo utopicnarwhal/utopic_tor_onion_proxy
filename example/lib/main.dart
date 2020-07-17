@@ -22,7 +22,7 @@ class _MyAppState extends State<MyApp> {
   Future<void> startTor() async {
     String port;
     try {
-      port = await UtopicTorOnionProxy.startTor();
+      port = (await UtopicTorOnionProxy.startTor()).toString();
     } on PlatformException catch (e) {
       print(e.message ?? '');
       port = 'Failed to get port';

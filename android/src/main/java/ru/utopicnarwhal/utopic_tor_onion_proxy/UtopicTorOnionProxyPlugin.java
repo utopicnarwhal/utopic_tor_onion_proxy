@@ -28,7 +28,7 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "utopic_tor_onion_proxy");
+        channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "utopic_tor_onion_proxy");
         channel.setMethodCallHandler(this);
         context = flutterPluginBinding.getApplicationContext();
     }
@@ -81,14 +81,21 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result rawResult) {
-        Result result = new MethodResultWrapper(rawResult);
+        Result methodResult = new MethodResultWrapper(rawResult);
 
-        if (call.method.equals("startTor")) {
-            startTor(result);
-        } else if (call.method.equals("stopTor")) {
-            stopTor(result);
-        } else {
-            result.notImplemented();
+        switch (call.method) {
+            case "startTor":
+                startTor(methodResult);
+                break;
+            case "stopTor":
+                stopTor(methodResult);
+                break;
+            case "isTorRunning":
+                isTorRunning(methodResult);
+                break;
+            default:
+                methodResult.notImplemented();
+                break;
         }
     }
 
@@ -114,24 +121,35 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
         }
     }
 
-    private static class TorStarter extends AsyncTask<Void, Void, Void> {
+    private void isTorRunning(final Result result) {
+        if (tor == null) {
+            result.success(false);
+        }
+
+        try {
+            result.success(tor.isRunning());
+        } catch (IOException e) {
+            result.error("0", e.toString(), e.getStackTrace());
+        }
+    }
+
+    private static class TorStarter extends AsyncTask<Void, Void, AsyncTaskResult<Integer>> {
         private OnionProxyManager tor;
-        private Result result;
+        private Result methodResult;
 
         TorStarter(OnionProxyManager tor, Result result) {
             this.tor = tor;
-            this.result = result;
+            this.methodResult = result;
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
+        protected AsyncTaskResult<Integer> doInBackground(Void... params) {
             int totalSecondsPerTorStartup = (int) TimeUnit.MINUTES.toSeconds(1);
             int totalTriesPerTorStartup = 1;
             try {
                 boolean ok = tor.startWithRepeat(totalSecondsPerTorStartup, totalTriesPerTorStartup);
                 if (!ok) {
-                    result.error("1", "Can't start Tor onion proxy", "");
-                    return null;
+                    return new AsyncTaskResult<>(new Exception("Can't start Tor onion proxy. Try again."));
                 }
                 int awaitCounter = 0;
                 while (!tor.isRunning() || awaitCounter != 30) {
@@ -139,24 +157,56 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
                     awaitCounter++;
                 }
                 if (tor.isRunning()) {
-                    result.success(String.valueOf(tor.getIPv4LocalHostSocksPort()));
-                    return null;
+                    return new AsyncTaskResult<>(tor.getIPv4LocalHostSocksPort());
                 }
-                result.error("2", "Tor is not running after start", "");
+                return new AsyncTaskResult<>(new Exception("Tor is not running after start"));
             } catch (Exception e) {
-                result.error("0", e.toString(), e.getStackTrace());
+                return new AsyncTaskResult<>(e);
             }
-            return null;
         }
 
         @Override
-        protected void onPostExecute(Void result) {
-            super.onPostExecute(result);
+        protected void onPostExecute(AsyncTaskResult<Integer> asyncTaskResult) {
+            super.onPostExecute(asyncTaskResult);
+            Integer port = asyncTaskResult.getResult();
+            if (port != null) {
+                methodResult.success(asyncTaskResult.getResult());
+                return;
+            }
+            Exception error = asyncTaskResult.getError();
+            if (error != null) {
+                methodResult.error("1", error.getMessage(), error.getStackTrace());
+                return;
+            }
+            methodResult.error("2", "Something strange", "");
         }
     }
 
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
         channel.setMethodCallHandler(null);
+    }
+}
+
+class AsyncTaskResult<T> {
+    private T result;
+    private Exception error;
+
+    public T getResult() {
+        return result;
+    }
+
+    public Exception getError() {
+        return error;
+    }
+
+    public AsyncTaskResult(T result) {
+        super();
+        this.result = result;
+    }
+
+    public AsyncTaskResult(Exception error) {
+        super();
+        this.error = error;
     }
 }
