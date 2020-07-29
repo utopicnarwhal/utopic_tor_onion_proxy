@@ -7,9 +7,18 @@ import android.os.Looper;
 
 import androidx.annotation.NonNull;
 
-import com.msopentech.thali.android.toronionproxy.AndroidOnionProxyManager;
-import com.msopentech.thali.toronionproxy.OnionProxyManager;
+import net.freehaven.tor.control.EventHandler;
 
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.DefaultEventBroadcaster;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.EventBroadcaster;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.TorConfig;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.TorConfigBuilder;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.TorSettings;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidDefaultTorSettings;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidOnionProxyManager;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.OnionProxyManager;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -19,6 +28,8 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidOnionProxyManagerEventHandler;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidTorInstaller;
 
 public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandler {
 
@@ -101,7 +112,29 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
     private void startTor(final Result result) {
         if (tor == null) {
-            tor = new AndroidOnionProxyManager(this.context, "tor_files");
+            String fileStorageLocation = "torfiles";
+
+            TorConfig torConfig = TorConfig.createDefault(new File(this.context.getCacheDir(), fileStorageLocation));
+            try {
+                torConfig.resolveTorrcFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            AndroidTorInstaller torInstaller = new AndroidTorInstaller(this.context, torConfig);
+            TorSettings torSettings = new AndroidDefaultTorSettings(this.context);
+            EventBroadcaster eventBroadcaster = new DefaultEventBroadcaster();
+            EventHandler eventHandler = new AndroidOnionProxyManagerEventHandler();
+
+            tor = new AndroidOnionProxyManager(this.context, torConfig, torInstaller, torSettings, eventBroadcaster, eventHandler);
+
+            try {
+                tor.setup();
+                final TorConfigBuilder builder = tor.getContext().newConfigBuilder().updateTorConfig();
+                tor.getContext().getInstaller().updateTorConfigCustom(builder.asString());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         new TorStarter(this.tor, result).execute();
@@ -113,12 +146,7 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
             return;
         }
 
-        try {
-            tor.stop();
-            result.success(true);
-        } catch (IOException e) {
-            result.error("0", e.toString(), e.getStackTrace());
-        }
+        new TorStopper(this.tor, result).execute();
     }
 
     private void isTorRunning(final Result result) {
@@ -126,11 +154,7 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
             result.success(false);
         }
 
-        try {
-            result.success(tor.isRunning());
-        } catch (IOException e) {
-            result.error("0", e.toString(), e.getStackTrace());
-        }
+        new TorRunningChecker(this.tor, result).execute();
     }
 
     private static class TorStarter extends AsyncTask<Void, Void, AsyncTaskResult<Integer>> {
@@ -147,7 +171,7 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
             int totalSecondsPerTorStartup = (int) TimeUnit.MINUTES.toSeconds(1);
             int totalTriesPerTorStartup = 1;
             try {
-                boolean ok = tor.startWithRepeat(totalSecondsPerTorStartup, totalTriesPerTorStartup);
+                boolean ok = tor.startWithRepeat(totalSecondsPerTorStartup, totalTriesPerTorStartup, false);
                 if (!ok) {
                     return new AsyncTaskResult<>(new Exception("Can't start Tor onion proxy. Try again."));
                 }
@@ -169,13 +193,90 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
         protected void onPostExecute(AsyncTaskResult<Integer> asyncTaskResult) {
             super.onPostExecute(asyncTaskResult);
             Integer port = asyncTaskResult.getResult();
+
             if (port != null) {
-                methodResult.success(asyncTaskResult.getResult());
+                methodResult.success(port);
                 return;
             }
+
             Exception error = asyncTaskResult.getError();
             if (error != null) {
-                methodResult.error("1", error.getMessage(), error.getStackTrace());
+                methodResult.error("1", error.getMessage(), "");
+                return;
+            }
+            methodResult.error("2", "Something strange", "");
+        }
+    }
+
+    private static class TorStopper extends AsyncTask<Void, Void, AsyncTaskResult<Boolean>> {
+        private OnionProxyManager tor;
+        private Result methodResult;
+
+        TorStopper(OnionProxyManager tor, Result result) {
+            this.tor = tor;
+            this.methodResult = result;
+        }
+
+        @Override
+        protected AsyncTaskResult<Boolean> doInBackground(Void... params) {
+            try {
+                tor.stop();
+                return new AsyncTaskResult<>(true);
+            } catch (Exception e) {
+                return new AsyncTaskResult<>(e);
+            }
+        }
+
+        @Override
+        protected void onPostExecute(AsyncTaskResult<Boolean> asyncTaskResult) {
+            super.onPostExecute(asyncTaskResult);
+            Boolean result = asyncTaskResult.getResult();
+
+            if (result != null) {
+                methodResult.success(result);
+                return;
+            }
+
+            Exception error = asyncTaskResult.getError();
+            if (error != null) {
+                methodResult.error("1", error.getMessage(), "");
+                return;
+            }
+            methodResult.error("2", "Something strange", "");
+        }
+    }
+
+    private static class TorRunningChecker extends AsyncTask<Void, Void, AsyncTaskResult<Boolean>> {
+        private OnionProxyManager tor;
+        private Result methodResult;
+
+        TorRunningChecker(OnionProxyManager tor, Result result) {
+            this.tor = tor;
+            this.methodResult = result;
+        }
+
+        @Override
+        protected AsyncTaskResult<Boolean> doInBackground(Void... params) {
+            try {
+                return new AsyncTaskResult<>(tor.isRunning());
+            } catch (Exception e) {
+                return new AsyncTaskResult<>(e);
+            }
+        }
+
+        @Override
+        protected void onPostExecute(AsyncTaskResult<Boolean> asyncTaskResult) {
+            super.onPostExecute(asyncTaskResult);
+            Boolean result = asyncTaskResult.getResult();
+
+            if (result != null) {
+                methodResult.success(result);
+                return;
+            }
+
+            Exception error = asyncTaskResult.getError();
+            if (error != null) {
+                methodResult.error("1", error.getMessage(), "");
                 return;
             }
             methodResult.error("2", "Something strange", "");

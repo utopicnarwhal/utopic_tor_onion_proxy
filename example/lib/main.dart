@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _port;
+  String _error;
   String _responseString;
 
   Future<void> startTor() async {
@@ -25,13 +26,26 @@ class _MyAppState extends State<MyApp> {
       port = (await UtopicTorOnionProxy.startTor()).toString();
     } on PlatformException catch (e) {
       print(e.message ?? '');
-      port = 'Failed to get port';
+      _error = 'Failed to get port';
     }
 
     if (!mounted) return;
     setState(() {
       _port = port;
     });
+  }
+
+  Future<void> stopTor() async {
+    try {
+      if (await UtopicTorOnionProxy.stopTor()) {
+        if (!mounted) return;
+        setState(() {
+          _port = null;
+        });
+      }
+    } on PlatformException catch (e) {
+      print(e.message ?? '');
+    }
   }
 
   @override
@@ -50,7 +64,7 @@ class _MyAppState extends State<MyApp> {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     SizedBox(height: 20),
-                    Text('Tor running on: ${_port ?? 'Unknown'} port'),
+                    Text('Tor running on: ${_port ?? _error ?? 'Unknown'}'),
                     SizedBox(height: 20),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -60,7 +74,11 @@ class _MyAppState extends State<MyApp> {
                         children: <Widget>[
                           OutlineButton(
                             child: Text('Start Tor Onion Proxy'),
-                            onPressed: startTor,
+                            onPressed: _port == null ? startTor : null,
+                          ),
+                          OutlineButton(
+                            child: Text('Stop Tor Onion Proxy'),
+                            onPressed: _port != null ? stopTor : null,
                           ),
                           OutlineButton(
                             child: Text('Send request to check.torproject.org'),

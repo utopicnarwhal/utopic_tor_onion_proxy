@@ -1,14 +1,16 @@
 # Tor Onion Proxy For Flutter (Android only)
 
 ## What is this?
-This is a Flutter Plugin for Android, based on [this](https://github.com/jehy/Tor-Onion-Proxy-Library) Android library.
+This is a Flutter Plugin for Android, based on code from [Tor Onion Proxy Library](https://github.com/thaliproject/Tor_Onion_Proxy_Library).
 
-Check out the example app included in this repo for reference on how to use this library with curl.
+Check out the example app included in this repo for reference on how to use this library with curl (the only way to connect through SOCKS4a proxy).
 
 ## Currently used Tor version
 
 This is built using
-* latest tor for jan 5, 2018 (0.3.1.9)
+* latest tor for May 1, 2020 (0.4.2.7a)
+
+[All releases](https://github.com/guardianproject/gpmaven/tree/master/org/torproject/tor-android-binary)
 
 ## Preview
 
@@ -19,7 +21,7 @@ This is built using
 ### 1. add dependencies into you project pubspec.yaml file
 ``` dart
 dependencies:
-    utopic_tor_onion_proxy: ^0.1.1
+    utopic_tor_onion_proxy: ^0.1.2
 ```
 
 ### 2. import lib
