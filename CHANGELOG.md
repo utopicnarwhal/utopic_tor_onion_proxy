@@ -1,3 +1,8 @@
+## 0.2.0
+
+* fix build app bundle shared libs error.
+* downgrade tor binary to 0.4.1.5.
+
 ## 0.1.2
 
 * isTorRunning and stopTor methods fix.

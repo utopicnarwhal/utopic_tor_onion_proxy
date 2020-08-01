@@ -15,10 +15,11 @@ package ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android;
 
 import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
 
 import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.TorConfig;
 import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.TorInstaller;
-import org.torproject.android.binary.TorResourceInstaller;
+import ru.utopicnarwhal.utopic_tor_onion_proxy.tor_android_binaries.TorResourceInstaller;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,8 +44,6 @@ public class AndroidTorInstaller extends TorInstaller {
 
     private final TorResourceInstaller resourceInstaller;
 
-    private final TorConfig torConfig;
-
     private static final String TAG = "TorInstaller";
 
     protected final Context context;
@@ -59,14 +58,13 @@ public class AndroidTorInstaller extends TorInstaller {
      *
      * The location of tor executable will be in the Android native library directory for the app.
      */
-    public AndroidTorInstaller(Context context, TorConfig TorConfig) {
-        this.torConfig = TorConfig;
+    public AndroidTorInstaller(Context context, TorConfig torConfig) {
         this.resourceInstaller = new TorResourceInstaller(context, torConfig.getConfigDir());
         this.context = context;
     }
 
-    public void updateTorConfigCustom(String content) throws IOException, TimeoutException {
-        if(torrcFile == null) {
+    public void updateTorConfigCustom(String content) throws IOException {
+        if (torrcFile == null) {
             throw new FileNotFoundException("Unable to find torrc file. Have you installed Tor resources?");
         }
         resourceInstaller.updateTorConfigCustom(torrcFile, content);
@@ -83,27 +81,22 @@ public class AndroidTorInstaller extends TorInstaller {
 
     @Override
     public void setup() throws IOException {
-        try {
-            this.torFile = resourceInstaller.installResources();
-            if (torFile != null) {
-                torConfig.setTorExecutableFile(torFile);
-                Log.d("AndroidTorInstaller", "tor executable = " + torFile.getAbsolutePath());
-            } else {
-                Log.w(TAG, "Failed to setup tor. No tor executable installed");
-                throw new IOException("Failed to Failed to setup tor. No tor executable installed");
-            }
+        this.torFile = resourceInstaller.installResources();
+        if (torFile != null) {
+            Log.d("AndroidTorInstaller", "tor executable = " + torFile.getAbsolutePath());
+        } else {
+            Toast.makeText(this.context,"Failed to setup tor. No tor executable installed", Toast.LENGTH_SHORT).show();
+            Log.w(TAG, "Failed to setup tor. No tor executable installed");
+            throw new IOException("Failed to Failed to setup tor. No tor executable installed");
+        }
 
-            this.torrcFile = resourceInstaller.getTorrcFile();
-            if(torrcFile != null) {
-                Log.d("AndroidTorInstaller", "torrc = " + torrcFile.getAbsolutePath());
-            } else {
-                Log.w(TAG, "Failed to setup tor. No torrc file installed");
-                throw new IOException("Failed to Failed to setup tor. No torrc file installed");
-            }
-
-        } catch (TimeoutException e) {
-            Log.w(TAG, "Failed to setup tor: " + e.getMessage());
-            throw new IOException(e);
+        this.torrcFile = resourceInstaller.getTorrcFile();
+        if(torrcFile != null) {
+            Log.d("AndroidTorInstaller", "torrc = " + torrcFile.getAbsolutePath());
+        } else {
+            Log.w(TAG, "Failed to setup tor. No torrc file installed");
+            Toast.makeText(this.context,"Failed to setup tor. No torrc file installed", Toast.LENGTH_SHORT).show();
+            throw new IOException("Failed to Failed to setup tor. No torrc file installed");
         }
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -19,7 +20,8 @@ import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidOnio
 import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.OnionProxyManager;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.TimeUnit;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -115,12 +117,6 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
             String fileStorageLocation = "torfiles";
 
             TorConfig torConfig = TorConfig.createDefault(new File(this.context.getCacheDir(), fileStorageLocation));
-            try {
-                torConfig.resolveTorrcFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
             AndroidTorInstaller torInstaller = new AndroidTorInstaller(this.context, torConfig);
             TorSettings torSettings = new AndroidDefaultTorSettings(this.context);
             EventBroadcaster eventBroadcaster = new DefaultEventBroadcaster();
@@ -130,10 +126,22 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
 
             try {
                 tor.setup();
+                torConfig.setTorExecutableFile(torInstaller.getTorFile());
+            } catch (Exception e) {
+                e.printStackTrace();
+                tor = null;
+                result.error("0", "Failed to setup Tor", "");
+                return;
+            }
+
+            try {
                 final TorConfigBuilder builder = tor.getContext().newConfigBuilder().updateTorConfig();
                 tor.getContext().getInstaller().updateTorConfigCustom(builder.asString());
             } catch (Exception e) {
                 e.printStackTrace();
+                tor = null;
+                result.error("0", "Failed to update Tor Config", "");
+                return;
             }
         }
 
