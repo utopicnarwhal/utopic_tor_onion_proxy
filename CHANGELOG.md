@@ -1,3 +1,7 @@
+## 0.2.1
+
+* update example
+
 ## 0.2.0
 
 * fix build app bundle shared libs error.

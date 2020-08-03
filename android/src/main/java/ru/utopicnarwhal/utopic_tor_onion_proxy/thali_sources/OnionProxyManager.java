@@ -328,7 +328,6 @@ public class OnionProxyManager {
         try {
             String phase = controlConnection.getInfo("status/bootstrap-phase");
             if (phase != null && phase.contains("PROGRESS=100")) {
-                LOG.info("Tor has already bootstrapped");
                 return true;
             }
         } catch (IOException e) {

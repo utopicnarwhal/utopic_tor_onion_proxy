@@ -3,7 +3,7 @@
 ## What is this?
 This is a Flutter Plugin for Android, based on code from [Tor Onion Proxy Library](https://github.com/thaliproject/Tor_Onion_Proxy_Library) and [Tor Android](https://github.com/guardianproject/tor-android).
 
-Check out the example app included in this repo for reference on how to use this library with cURL (the only way in Dart to connect through SOCKS4a proxy).
+Check out the example app included in this repo for reference on how to use this library with sockets.
 
 ## Currently used Tor version
 

@@ -95,7 +95,6 @@ public class AndroidOnionProxyManager extends OnionProxyManager {
     }
 
     private class NetworkStateReceiver extends BroadcastReceiver {
-
         @Override
         public void onReceive(final Context ctx, final Intent i) {
             new Thread(new Runnable() {
