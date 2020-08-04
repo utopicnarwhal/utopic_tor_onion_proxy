@@ -1,3 +1,7 @@
+## 0.2.2
+
+* fix unnecessary thread sleep when starting tor
+
 ## 0.2.1
 
 * update example

@@ -1,6 +1,6 @@
 name: utopic_tor_onion_proxy
 description: Flutter Plugin for Android, based on Android binary that start Tor Onion Proxy on random local socket.
-version: 0.2.1
+version: 0.2.2
 homepage: https://github.com/utopicnarwhal/utopic_tor_onion_proxy
 
 environment:

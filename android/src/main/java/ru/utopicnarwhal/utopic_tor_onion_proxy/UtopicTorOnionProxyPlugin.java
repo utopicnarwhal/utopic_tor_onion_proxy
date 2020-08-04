@@ -184,7 +184,7 @@ public class UtopicTorOnionProxyPlugin implements FlutterPlugin, MethodCallHandl
                     return new AsyncTaskResult<>(new Exception("Can't start Tor onion proxy. Try again."));
                 }
                 int awaitCounter = 0;
-                while (!tor.isRunning() || awaitCounter <= 300) {
+                while (!tor.isRunning() && awaitCounter <= 300) {
                     Thread.sleep(200);
                     awaitCounter++;
                 }
