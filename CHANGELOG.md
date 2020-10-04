@@ -1,3 +1,8 @@
+## 0.2.3
+
+* fix tor library extraction to nativeLibraryDir
+* add instructions to README
+
 ## 0.2.2
 
 * fix unnecessary thread sleep when starting tor

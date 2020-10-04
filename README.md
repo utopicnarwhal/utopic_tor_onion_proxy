@@ -17,6 +17,34 @@ This is built using tor 0.4.1.5
 
 ## How do I use this plugin?
 
+### Preparation (for Android App Bundling)
+1. Add `android.bundle.enableUncompressedNativeLibs=false` to your `android -> gradle.properties` file.
+```
+org.gradle.jvmargs=-Xmx1536M
+...
+android.bundle.enableUncompressedNativeLibs=false
+```
+2. Add `android:extractNativeLibs="true"` to your `AndroidManifest.xml`.
+```
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="...">
+
+    ...
+
+    <application
+        ...
+        android:extractNativeLibs="true">
+        ...
+    </application>
+
+    ...
+</manifest>
+```
+3. Use `--no-shrink` param in build appbundle command.
+```
+flutter build appbundle --no-shrink ...
+```
+
 ### 1. add dependencies into you project pubspec.yaml file
 ``` dart
 dependencies:

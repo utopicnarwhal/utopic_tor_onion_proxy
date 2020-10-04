@@ -1,9 +1,7 @@
 package ru.utopicnarwhal.utopic_tor_onion_proxy.tor_android_binaries;
 
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
 import android.os.Build;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -11,14 +9,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
+
+import static ru.utopicnarwhal.utopic_tor_onion_proxy.tor_android_binaries.TorServiceConstants.TOR_ASSET_KEY;
 
 public class NativeLoader {
 
-    private final static String LIB_SO_NAME = "tor.so";
+    private final static String LIB_SO_NAME = TOR_ASSET_KEY + ".so";
 
     private final static String TAG = "TorNativeLoader";
 
@@ -26,19 +24,21 @@ public class NativeLoader {
         ZipFile zipFile = null;
         ZipFile splitApkZipFile = null;
         InputStream stream = null;
+        Boolean result = false;
 
         try {
             zipFile = new ZipFile(context.getApplicationInfo().sourceDir);
 
             ZipEntry entry = zipFile.getEntry("lib/" + arch + "/" + LIB_SO_NAME);
+
             if (entry == null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     for (String splitSourcePath: context.getApplicationInfo().splitSourceDirs) {
-                        String[] splittedBySlash = splitSourcePath.split("/");
-                        String sourceFileName = splittedBySlash[splittedBySlash.length - 1];
-                        String[] stringSplitted = sourceFileName.split("\\.");
+                        String[] splitBySlash = splitSourcePath.split("/");
+                        String sourceFileName = splitBySlash[splitBySlash.length - 1];
+                        String[] stringSplit = sourceFileName.split("\\.");
 
-                        if (stringSplitted.length > 2 && arch.replace('-', '_').equalsIgnoreCase(stringSplitted[stringSplitted.length - 2])) {
+                        if (stringSplit.length > 2 && arch.replace('-', '_').equalsIgnoreCase(stringSplit[stringSplit.length - 2])) {
                             splitApkZipFile = new ZipFile(splitSourcePath);
                             break;
                         }
@@ -58,6 +58,10 @@ public class NativeLoader {
                 stream = zipFile.getInputStream(entry);
             }
 
+            destLocalFile.setReadable(true, false);
+            destLocalFile.setExecutable(true, false);
+            destLocalFile.setWritable(true);
+
             OutputStream out = new FileOutputStream(destLocalFile);
             byte[] buf = new byte[4096];
             int len;
@@ -67,13 +71,10 @@ public class NativeLoader {
             }
             out.close();
 
-            destLocalFile.setReadable(true, false);
-            destLocalFile.setExecutable(true, false);
-            destLocalFile.setWritable(true);
-
-            return true;
+            result = true;
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
+            Toast.makeText(context, e.getMessage(), Toast.LENGTH_LONG).show();
         } finally {
             if (stream != null) {
                 try {
@@ -97,25 +98,24 @@ public class NativeLoader {
                 }
             }
         }
-        return false;
+        return result;
     }
 
     public static synchronized File initNativeLibs(Context context, File destLocalFile) {
         try {
-            String folder = null;
+            String arch = null;
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                folder = Build.CPU_ABI;
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                folder = Build.SUPPORTED_ABIS[0];
+                arch = Build.CPU_ABI;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                arch = Build.SUPPORTED_ABIS[0];
             }
 
             String javaArch = System.getProperty("os.arch");
             if (javaArch != null && javaArch.contains("686")) {
-                folder = "x86";
+                arch = "x86";
             }
 
-            if (loadFromZip(context, destLocalFile, folder)) {
+            if (loadFromZip(context, destLocalFile, arch)) {
                 return destLocalFile;
             }
 

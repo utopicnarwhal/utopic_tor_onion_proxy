@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -20,8 +19,6 @@ import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.android.AndroidOnio
 import ru.utopicnarwhal.utopic_tor_onion_proxy.thali_sources.OnionProxyManager;
 
 import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.concurrent.TimeUnit;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
