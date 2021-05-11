@@ -1,3 +1,7 @@
+## 0.3.0
+
+* upgrade tor binary version to 0.4.3.6
+
 ## 0.2.3
 
 * fix tor library extraction to nativeLibraryDir

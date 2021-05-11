@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/utopic_tor_onion_proxy.iml" filepath="$PROJECT_DIR$/.idea/modules/utopic_tor_onion_proxy.iml" group="utopic_tor_onion_proxy" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/utopic_tor_onion_proxy.iml" filepath="$PROJECT_DIR$/.idea/modules/utopic_tor_onion_proxy.iml" />
     </modules>
   </component>
 </project>

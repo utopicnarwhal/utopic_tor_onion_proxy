@@ -7,7 +7,7 @@ Check out the example app included in this repo for reference on how to use this
 
 ## Currently used Tor version
 
-This is built using tor 0.4.1.5
+This is built using tor 0.4.3.6
 
 [All releases](https://github.com/guardianproject/gpmaven/tree/master/org/torproject/tor-android-binary)
 
@@ -40,7 +40,30 @@ android.bundle.enableUncompressedNativeLibs=false
     ...
 </manifest>
 ```
-3. Use `--no-shrink` param in build appbundle command.
+3. Add shrink, zip aligned and minify settings into your `android/app/build.gradle` file.
+```
+android {
+    compileSdkVersion 29
+
+    defaultConfig {
+        ...
+        minSdkVersion 16
+        targetSdkVersion 29
+    }
+
+    buildTypes {
+        ...
+        release {
+            signingConfig signingConfigs.debug
+            shrinkResources false
+            zipAlignEnabled false
+            minifyEnabled false
+            ...
+        }
+    }
+}
+```
+4. Use `--no-shrink` param in build appbundle command.
 ```
 flutter build appbundle --no-shrink ...
 ```

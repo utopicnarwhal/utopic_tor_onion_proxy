@@ -144,17 +144,17 @@ class _MyAppState extends State<MyApp> {
                           runSpacing: 20,
                           spacing: 20,
                           children: <Widget>[
-                            OutlineButton(
+                            OutlinedButton(
                               child: Text('Start Tor Onion Proxy'),
                               onPressed:
                                   _torLocalPort == null ? _startTor : null,
                             ),
-                            OutlineButton(
+                            OutlinedButton(
                               child: Text('Stop Tor Onion Proxy'),
                               onPressed:
                                   _torLocalPort != null ? _stopTor : null,
                             ),
-                            OutlineButton(
+                            OutlinedButton(
                               child:
                                   Text('Send request to check.torproject.org'),
                               onPressed: _torLocalPort != null
