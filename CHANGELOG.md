@@ -1,3 +1,7 @@
+## 0.4.0
+
+* Migrated to Null-Safety
+
 ## 0.3.0
 
 * upgrade tor binary version to 0.4.3.6

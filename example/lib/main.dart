@@ -26,7 +26,7 @@ class _MyAppState extends State<MyApp> {
     try {
       port = (await UtopicTorOnionProxy.startTor()).toString();
     } on Exception catch (e) {
-      print(e ?? '');
+      print(e);
       _error = 'Failed to get port';
     }
 
