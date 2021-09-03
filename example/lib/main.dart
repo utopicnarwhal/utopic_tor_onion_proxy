@@ -16,17 +16,17 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _torLocalPort;
-  String _error;
-  String _responseString;
-  Socket _socket;
+  String? _torLocalPort;
+  String? _error;
+  String? _responseString;
+  Socket? _socket;
 
   Future<void> _startTor() async {
-    String port;
+    String? port;
     try {
       port = (await UtopicTorOnionProxy.startTor()).toString();
     } on Exception catch (e) {
-      print(e ?? '');
+      print(e);
       _error = 'Failed to get port';
     }
 
@@ -38,7 +38,7 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _stopTor() async {
     try {
-      if (await UtopicTorOnionProxy.stopTor()) {
+      if (await (UtopicTorOnionProxy.stopTor() as FutureOr<bool>)) {
         if (!mounted) return;
         setState(() {
           _torLocalPort = null;
@@ -59,12 +59,12 @@ class _MyAppState extends State<MyApp> {
 
     _socket = await Socket.connect(
       InternetAddress.loopbackIPv4,
-      int.tryParse(_torLocalPort),
+      int.tryParse(_torLocalPort!)!,
       timeout: Duration(seconds: 5),
     );
-    _socket.setOption(SocketOption.tcpNoDelay, true);
+    _socket!.setOption(SocketOption.tcpNoDelay, true);
 
-    _socksConnectionRequest(uri, _socket);
+    _socksConnectionRequest(uri, _socket!);
 
     List<int> responseIntList = [];
 
@@ -77,23 +77,23 @@ class _MyAppState extends State<MyApp> {
       }
     }
 
-    _socket.listen((event) async {
+    _socket!.listen((event) async {
       if (event.length == 8 && event[0] == 0x00 && event[1] == 0x5A) {
         print('Connection open');
 
         if (uri.scheme == 'https') {
           _socket = await SecureSocket.secure(
-            _socket,
+            _socket!,
             host: uri.authority,
           );
-          _socket.listen((event) {
+          _socket!.listen((event) {
             responseIntList.addAll(event);
           }).onDone(onSocketDone);
         }
 
         var requestString = 'GET ${uri.path} HTTP/1.1\r\n'
             'Host: ${uri.authority}\r\n\r\n';
-        _socket.write(requestString);
+        _socket!.write(requestString);
         return;
       }
       responseIntList.addAll(event);
@@ -183,7 +183,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
-    _socket.close();
+    _socket!.close();
     super.dispose();
   }
 }
